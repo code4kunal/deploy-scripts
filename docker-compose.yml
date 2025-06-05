@@ -10,7 +10,7 @@ services:
       - vayunx-core-ui
       - vayunx-discovery-service
   vayunx-core-ui:
-    image: vayunx-core-ui
+    image: 168varun/vayunx-core-ui
     expose:
       - "80"
     volumes:
@@ -19,7 +19,7 @@ services:
       - vayunx-discovery-service
 
   vayunx-discovery-service:
-    image: vayunx-discovery-service
+    image: 168varun/vayunx-discovery-service
     expose:
       - "8000"
 
