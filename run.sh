@@ -1,7 +1,7 @@
 #!/bin/bash
 # Stop running containers and remove volumes
 echo "Stopping running containers..."
-docker-compose down -f
+docker-compose down
 # Pull latest images
 echo "Pulling latest images..."
 docker-compose pull

@@ -21,6 +21,7 @@ services:
       - ./custom-env.js:/usr/share/nginx/html/env-config.js
     depends_on:
       - vayunx-discovery-service
+      - vayunx-core-backend
 
   vayunx-discovery-service:
     image: 168varun/vayunx-discovery-service:latest
