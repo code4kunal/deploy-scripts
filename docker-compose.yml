@@ -11,8 +11,10 @@ services:
     depends_on:
       - vayunx-core-ui
       - vayunx-discovery-service
+      - vayunx-core-backend
+
   vayunx-core-ui:
-    image: 168varun/vayunx-core-ui
+    image: 168varun/vayunx-core-ui:latest
     expose:
       - "80"
     volumes:
@@ -21,8 +23,13 @@ services:
       - vayunx-discovery-service
 
   vayunx-discovery-service:
-    image: 168varun/vayunx-discovery-service
+    image: 168varun/vayunx-discovery-service:latest
     expose:
       - "8000"
+
+  vayunx-core-backend:
+    image: 168varun/vayunx-core-backend:latest
+    expose:
+      - "8081"
 
 
