@@ -1,0 +1,41 @@
+# .github/workflows/deploy.yml
+name: Deploy on Dispatch
+
+on:
+  repository_dispatch:
+    types: [vayunx-discovery-service-updated, vayunx-core-ui-updated, vayu-core-backend-updated]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Wake up VM
+      run: |
+        curl -X POST ${{ secrets.VM_WAKEUP_URL }}
+
+    - name: Wait for SSH (max 2 minutes)
+      run: |
+        echo "Waiting for VM to be reachable on SSH..."
+        for i in {1..30}; do
+          if nc -z ${{ secrets.VM_HOST }} 22; then
+            echo "VM is up!"
+            break
+          fi
+          echo "Still waiting..."
+          sleep 5
+        done
+
+    - name: SSH and deploy
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USER }}
+        password: ${{ secrets.VM_PASSWORD }}
+        script: |
+          cd vayunx
+          rm -rf vayunx-deploy-scripts
+          git clone git@github.com:vayunxtechnologies/vayunx-deploy-scripts.git
+          cd vayunx-deploy-scripts
+          chmod +x run.sh
+          ./run.sh
