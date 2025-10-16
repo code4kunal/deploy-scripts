@@ -1,7 +1,37 @@
 version: "3.9"
+
 services:
+  # PostgreSQL Database for VayunX Services
+  postgres:
+    image: postgres:15-alpine
+    container_name: vayunx-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-vayunx_discovery}
+      POSTGRES_USER: ${POSTGRES_USER:-vayunx_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vayunx_secure_password_2024}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      # Persistent data volume
+      - postgres_data:/var/lib/postgresql/data
+      # Database initialization scripts (executed in alphabetical order)
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vayunx_user} -d ${POSTGRES_DB:-vayunx_discovery}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - vayunx-network
+
   nginx:
     image: nginx:latest
+    container_name: vayunx-nginx
+    restart: unless-stopped
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - /etc/letsencrypt/live/demo.vayunx.com/fullchain.pem:/etc/letsencrypt/live/demo.vayunx.com/fullchain.pem
@@ -11,26 +41,64 @@ services:
     depends_on:
       - vayunx-core-ui
       - vayunx-discovery-service
-      - vayunx-core-backend
+    networks:
+      - vayunx-network
 
   vayunx-core-ui:
     image: 168varun/vayunx-core-ui:latest
+    container_name: vayunx-core-ui
+    restart: unless-stopped
     expose:
       - "80"
     volumes:
       - ./custom-env.js:/usr/share/nginx/html/env-config.js
     depends_on:
       - vayunx-discovery-service
-      - vayunx-core-backend
+    networks:
+      - vayunx-network
 
   vayunx-discovery-service:
     image: 168varun/vayunx-discovery-service:latest
+    container_name: vayunx-discovery-service
+    restart: unless-stopped
+    environment:
+      # Database connection (using internal Docker network)
+      DATABASE_URL: postgresql://${POSTGRES_USER:-vayunx_user}:${POSTGRES_PASSWORD:-vayunx_secure_password_2024}@postgres:5432/${POSTGRES_DB:-vayunx_discovery}
+      # Security
+      SECRET_KEY: ${SECRET_KEY:-change-this-secret-key-in-production}
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 2880
+      # Core service integration
+      CORE_SERVICE_URL: ${CORE_SERVICE_URL:-http://localhost:8081}
+      CORE_SERVICE_API_KEY: ${CORE_SERVICE_API_KEY:-}
+      ENABLE_TICKET_CREATION: ${ENABLE_TICKET_CREATION:-false}
     expose:
       - "8000"
+    volumes:
+      - discovery_uploads:/app/uploads
+      - discovery_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - vayunx-network
 
-  vayunx-core-backend:
-    image: 168varun/vayunx-core-backend:latest
-    expose:
-      - "8081"
+# Named volumes for data persistence
+volumes:
+  postgres_data:
+    driver: local
+    name: vayunx_postgres_data
+  discovery_uploads:
+    driver: local
+    name: vayunx_discovery_uploads
+  discovery_logs:
+    driver: local
+    name: vayunx_discovery_logs
+
+# Network for inter-service communication
+networks:
+  vayunx-network:
+    driver: bridge
+    name: vayunx_network
 
 

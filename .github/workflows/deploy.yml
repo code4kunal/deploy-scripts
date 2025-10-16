@@ -14,7 +14,7 @@ jobs:
       run: |
         curl -X POST ${{ secrets.VM_WAKEUP_URL }}
 
-    - name: Wait for SSH (max 2 minutes)
+    - name: Wait for SSH (max 2.5 minutes)
       run: |
         echo "Waiting for VM to be reachable on SSH..."
         for i in {1..30}; do
